@@ -101,7 +101,7 @@ int get_powerplan_app_map(app_list_s* powerplan_app_map) {
     json_t* json_root;
     json_error_t jerror;
 
-    json_root = json_load_file("./sample.json", 0, &jerror);
+    json_root = json_load_file("./app_list.json", 0, &jerror);
 
     if (json_root == NULL) {
         fputs(jerror.text, stderr);
