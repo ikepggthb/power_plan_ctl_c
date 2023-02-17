@@ -1,4 +1,4 @@
 {
-  "high_performance": [ "r5apex" ],
-  "balanced": [ "firefox.exe", "chrome.exe" , "code.exe" ]
+  "high_performance": [ "code" ],
+  "balanced": [ "r5apex.exe" ]
 }

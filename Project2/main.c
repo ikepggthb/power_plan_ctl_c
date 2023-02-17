@@ -13,17 +13,17 @@
 
 #endif
 
-#include <Windows.h>
-#include <powersetting.h>
-#include <stdio.h>
-#include < combaseapi.h >
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
+#include <Windows.h>
+#include <powersetting.h>
+#include < combaseapi.h >
+#include <tlhelp32.h>
 #include <tchar.h>
-#include <psapi.h>
 
 #include <jansson.h>
 
@@ -151,66 +151,33 @@ int get_powerplan_app_map(app_list_s* powerplan_app_map) {
 
 
 int get_process_list(app_list_s* process_list) {
-
-
     if (process_list->names == NULL) { return -1; }
 
-    DWORD cbNeeded, nProc;
-
-    size_t size_allProc = MAX_NPROC * sizeof(DWORD);
-    DWORD* allProc = NULL;
-    allProc = (DWORD *)malloc(size_allProc);
-    process_list->count = 0;
-
-    if (allProc == NULL) {
-        printf("メモリ不足！");
+    HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hSnapShot == INVALID_HANDLE_VALUE) {
         return -1;
     }
 
-        
-    if (!EnumProcesses(allProc, (DWORD)size_allProc, &cbNeeded)) {
-        return -1;
+    PROCESSENTRY32 pe;
+    pe.dwSize = sizeof(pe);
+
+    if (!Process32First(hSnapShot, &pe)) {
+        CloseHandle(hSnapShot);    return -1;
     }
 
-    nProc = cbNeeded / sizeof(DWORD);
-
-
-    for (int i = 0; i < nProc; i++) {
-        TCHAR procName[MAX_PATH] = TEXT("<unknown>");
-
-        HANDLE hProcess = OpenProcess(
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            FALSE, allProc[i]);
-        if (NULL != hProcess) {
-            HMODULE hMod;
-            DWORD cbNeeded;
-
-            if (EnumProcessModulesEx(hProcess, &hMod, sizeof(hMod), &cbNeeded, LIST_MODULES_ALL)) {
-                GetModuleBaseName(hProcess, hMod, procName,
-                    sizeof(procName) / sizeof(TCHAR));
-            }
-            CloseHandle(hProcess);
-        }
+    int i = 0;
+    do {
         size_t rv;
-        wcstombs_s(
-            &rv,
-            process_list->names[i],
-            MAX_PATH,
-            procName,
-            _TRUNCATE
-        );
-       
-    }
-    process_list->count = nProc;
-    free(allProc);
-    allProc = NULL;
+        wcstombs_s(&rv, process_list->names[i], MAX_PATH, pe.szExeFile, _TRUNCATE);
+        ++i;
+    } while (Process32Next(hSnapShot, &pe) && i < MAX_NPROC);
 
+    process_list->count = i;
 
+    CloseHandle(hSnapShot);
+
+    return 0;
 }
-
-
-
-
 
 
 
@@ -252,6 +219,7 @@ int main() {
             printf("%d %d %d\n", should_enable_power_plan[HIGH_PERFORMANCE], should_enable_power_plan[BALANCED], should_enable_power_plan[POWER_SAVER]);
         #endif
         Sleep(2000);
+        break;
     }
 
     
