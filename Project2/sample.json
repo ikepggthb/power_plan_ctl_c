@@ -1,0 +1,5 @@
+{
+  "high_performance": [ "chrome.exe" ],
+  "balanced": [ "firefox.exe", "chrome.exe" ],
+  "power_saver": []
+}
